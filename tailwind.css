@@ -1,1 +1,45 @@
 @import "tailwindcss";
+
+@theme {
+  --color-ctp-base: #1e1e2e;
+  --color-ctp-mantle: #181825;
+  --color-ctp-surface0: #313244;
+  --color-ctp-surface1: #45475a;
+  --color-ctp-overlay0: #6c7086;
+  --color-ctp-overlay1: #7f849c;
+  --color-ctp-subtext0: #a6adc8;
+  --color-ctp-subtext1: #bac2de;
+  --color-ctp-text: #cdd6f4;
+  --color-ctp-mauve: #cba6f7;
+  --color-ctp-pink: #f5c2e7;
+  --color-ctp-red: #f38ba8;
+}
+
+body {
+  background-color: var(--color-ctp-base);
+  color: var(--color-ctp-text);
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.masonry {
+  column-count: 1;
+  column-gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .masonry {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .masonry {
+    column-count: 3;
+  }
+}
+
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 1.25rem;
+}
