@@ -69,7 +69,7 @@ pub fn Dashboard() -> Element {
                             div { class: "flex flex-col items-center justify-center py-16",
                                 div { class: "w-12 h-12 border-4 border-ctp-mauve border-t-transparent rounded-full animate-spin mb-4" }
                                 p { class: "text-ctp-subtext0",
-                                    "Scanning your AT Protocol repository..."
+                                    "Loading your apps..."
                                 }
                             }
                         }
@@ -83,6 +83,7 @@ pub fn Dashboard() -> Element {
 #[component]
 fn AppCard(app: DiscoveredApp) -> Element {
     let color = app.color.clone();
+    let has_url = !app.url.is_empty();
 
     rsx! {
         div {
@@ -93,19 +94,34 @@ fn AppCard(app: DiscoveredApp) -> Element {
 
             div { class: "p-5",
                 div { class: "flex items-start justify-between mb-3",
-                    span { class: "text-3xl",
-                        "{app.icon}"
+                    if has_url {
+                        a {
+                            href: "{app.url}",
+                            target: "_blank",
+                            class: "text-3xl hover:scale-110 transition-transform inline-block",
+                            "{app.icon}"
+                        }
+                    } else {
+                        span { class: "text-3xl",
+                            "{app.icon}"
+                        }
                     }
                     span { class: "px-2 py-1 bg-ctp-surface1 rounded-full text-xs text-ctp-subtext0",
                         "{app.record_count} records"
                     }
                 }
 
-                h3 { class: "text-lg font-semibold text-ctp-text mb-1 group-hover:text-ctp-mauve transition-colors",
-                    "{app.display_name}"
-                }
-                p { class: "text-ctp-subtext0 text-sm mb-3 leading-relaxed",
-                    "{app.description}"
+                if has_url {
+                    a {
+                        href: "{app.url}",
+                        target: "_blank",
+                        class: "text-lg font-semibold text-ctp-text mb-1 group-hover:text-ctp-mauve transition-colors hover:underline inline-block",
+                        "{app.display_name}"
+                    }
+                } else {
+                    h3 { class: "text-lg font-semibold text-ctp-text mb-1 group-hover:text-ctp-mauve transition-colors",
+                        "{app.display_name}"
+                    }
                 }
 
                 div { class: "pt-3 border-t border-ctp-surface1",

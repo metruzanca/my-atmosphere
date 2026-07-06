@@ -61,9 +61,9 @@ pub async fn scan_apps_server(session: SessionData) -> Result<Vec<DiscoveredApp>
                     .map(|a| DiscoveredApp {
                         nsid_prefix: a.nsid_prefix,
                         display_name: a.display_name,
-                        description: a.description,
                         icon: a.icon,
                         color: a.color,
+                        url: a.url,
                         record_count: a.record_count,
                         collections: a.collections,
                     })

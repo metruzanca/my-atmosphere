@@ -1,21 +1,12 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, hash_map::DefaultHasher};
+use std::hash::{Hash, Hasher};
 
 use atproto_identity::url::build_url;
 use atproto_oauth::dpop::request_dpop;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use super::oauth::{SessionData, ACTIVE_SESSIONS};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DiscoveredApp {
-    pub nsid_prefix: String,
-    pub display_name: String,
-    pub description: String,
-    pub icon: String,
-    pub color: String,
-    pub record_count: usize,
-    pub collections: Vec<String>,
-}
+use crate::types::DiscoveredApp;
 
 #[derive(Debug, Deserialize)]
 struct DescribeRepoResponse {
@@ -67,31 +58,23 @@ pub async fn scan_apps(session: &SessionData) -> Result<Vec<DiscoveredApp>, Stri
             .push(collection.clone());
     }
 
-    let apps: Vec<DiscoveredApp> = prefix_map
+    let mut apps: Vec<DiscoveredApp> = prefix_map
         .into_iter()
         .map(|(prefix, collections)| {
             let record_count = collections.len();
-            let meta = APP_REGISTRY.get(prefix.as_str());
             DiscoveredApp {
-                nsid_prefix: prefix.clone(),
-                display_name: meta
-                    .map(|m| m.name)
-                    .unwrap_or(&prefix)
-                    .to_string(),
-                description: meta
-                    .map(|m| m.description)
-                    .unwrap_or("Unknown application")
-                    .to_string(),
-                icon: meta.map(|m| m.icon).unwrap_or("📦").to_string(),
-                color: meta
-                    .map(|m| m.color)
-                    .unwrap_or("#6b7280")
-                    .to_string(),
+                display_name: nsid_prefix_to_name(&prefix),
+                url: nsid_prefix_to_url(&prefix),
+                icon: pick_icon(&prefix),
+                color: pick_color(&prefix),
+                nsid_prefix: prefix,
                 record_count,
                 collections,
             }
         })
         .collect();
+
+    apps.sort_by(|a, b| a.display_name.to_lowercase().cmp(&b.display_name.to_lowercase()));
 
     Ok(apps)
 }
@@ -105,105 +88,46 @@ fn extract_nsid_prefix(nsid: &str) -> String {
     }
 }
 
-struct AppMeta {
-    name: &'static str,
-    description: &'static str,
-    icon: &'static str,
-    color: &'static str,
+fn nsid_prefix_to_name(prefix: &str) -> String {
+    prefix
+        .split('.')
+        .rev()
+        .map(|part| {
+            let mut chars = part.chars();
+            match chars.next() {
+                Some(c) => c.to_uppercase().chain(chars).collect(),
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
-static APP_REGISTRY: std::sync::LazyLock<HashMap<&'static str, AppMeta>> =
-    std::sync::LazyLock::new(|| {
-        let mut m = HashMap::new();
-        m.insert(
-            "app.bsky",
-            AppMeta {
-                name: "Bluesky",
-                description: "Social networking on the AT Protocol",
-                icon: "🦋",
-                color: "#1185fe",
-            },
-        );
-        m.insert(
-            "chat.bsky",
-            AppMeta {
-                name: "Bluesky Chat",
-                description: "Direct messaging on Bluesky",
-                icon: "💬",
-                color: "#1185fe",
-            },
-        );
-        m.insert(
-            "sh.tangled",
-            AppMeta {
-                name: "Tangled",
-                description: "Git collaboration on AT Protocol",
-                icon: "🔀",
-                color: "#6366f1",
-            },
-        );
-        m.insert(
-            "dev.keytrace",
-            AppMeta {
-                name: "Keytrace",
-                description: "Cryptographic key verification",
-                icon: "🔑",
-                color: "#f59e0b",
-            },
-        );
-        m.insert(
-            "fyi.atstore",
-            AppMeta {
-                name: "AT Store",
-                description: "App directory and reviews",
-                icon: "🏪",
-                color: "#10b981",
-            },
-        );
-        m.insert(
-            "pub.leaflet",
-            AppMeta {
-                name: "Leaflet",
-                description: "Publishing on AT Protocol",
-                icon: "📰",
-                color: "#8b5cf6",
-            },
-        );
-        m.insert(
-            "site.standard",
-            AppMeta {
-                name: "Standard Site",
-                description: "Personal websites on AT Protocol",
-                icon: "🌐",
-                color: "#ec4899",
-            },
-        );
-        m.insert(
-            "social.popfeed",
-            AppMeta {
-                name: "Popfeed",
-                description: "Social feed and reviews",
-                icon: "🔥",
-                color: "#ef4444",
-            },
-        );
-        m.insert(
-            "community.lexicon",
-            AppMeta {
-                name: "Lexicon Community",
-                description: "Community events and calendars",
-                icon: "📅",
-                color: "#14b8a6",
-            },
-        );
-        m.insert(
-            "com.imlunahey",
-            AppMeta {
-                name: "LunaHey",
-                description: "Guestbooks and leaderboards",
-                icon: "📝",
-                color: "#a855f7",
-            },
-        );
-        m
-    });
+fn nsid_prefix_to_url(prefix: &str) -> String {
+    let parts: Vec<&str> = prefix.split('.').collect();
+    let reversed: Vec<&str> = parts.into_iter().rev().collect();
+    format!("https://{}", reversed.join("."))
+}
+
+fn hash_prefix(prefix: &str) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    prefix.hash(&mut hasher);
+    hasher.finish()
+}
+
+fn pick_icon(prefix: &str) -> String {
+    const ICONS: &[&str] = &[
+        "📦", "🔧", "📡", "💡", "🎯", "🚀", "⭐", "🔮",
+        "📋", "🎨", "🔌", "📊", "🌱", "⚡", "🛠", "📚",
+    ];
+    ICONS[hash_prefix(prefix) as usize % ICONS.len()].to_string()
+}
+
+fn pick_color(prefix: &str) -> String {
+    const COLORS: &[&str] = &[
+        "#cba6f7", "#f5c2e7", "#89b4fa", "#a6e3a1",
+        "#fab387", "#94e2d5", "#74c7ec", "#f38ba8",
+        "#b4befe", "#f9e2af", "#eba0ac", "#89dceb",
+    ];
+    COLORS[hash_prefix(prefix) as usize % COLORS.len()].to_string()
+}

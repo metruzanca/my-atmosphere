@@ -59,7 +59,7 @@ pub fn Login() -> Element {
                     "my-atmosphere"
                 }
                 p { class: "text-ctp-subtext0 mb-8 text-center",
-                    "Discover the AT Protocol apps you use"
+                    "Your AT Protocol app dashboard"
                 }
 
                 div { class: "space-y-4",
