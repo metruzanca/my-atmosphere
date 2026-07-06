@@ -17,6 +17,11 @@ static OAUTH_STATES: LazyLock<Mutex<HashMap<String, StoredOAuthState>>> =
 pub(crate) static ACTIVE_SESSIONS: LazyLock<Mutex<HashMap<String, ActiveSession>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
+static SIGNING_KEY: LazyLock<KeyData> = LazyLock::new(|| {
+    get_or_generate_key()
+        .expect("Failed to initialize OAuth signing key; set a valid OAUTH_KEY_SEED or ensure key generation works")
+});
+
 #[derive(Clone)]
 struct StoredOAuthState {
     oauth_request: OAuthRequest,
@@ -51,6 +56,10 @@ pub struct SessionData {
     pub access_token: String,
 }
 
+pub fn get_signing_key() -> &'static KeyData {
+    &SIGNING_KEY
+}
+
 fn get_or_generate_key() -> Result<KeyData, String> {
     if let Ok(seed_hex) = std::env::var("OAUTH_KEY_SEED") {
         let seed_hex = seed_hex.trim();
@@ -81,7 +90,7 @@ fn urlencoding(s: &str) -> String {
     form_urlencoded::byte_serialize(s.as_bytes()).collect()
 }
 
-fn base_url() -> String {
+pub(crate) fn base_url() -> String {
     let domain = std::env::var("HOST_DOMAIN")
         .or_else(|_| std::env::var("RAILWAY_PUBLIC_DOMAIN"))
         .unwrap_or_default();
@@ -108,7 +117,7 @@ pub async fn init_oauth(handle: String) -> Result<OAuthInitResponse, String> {
     let base = base_url();
     let redirect_uri = format!("{}/oauth/callback", base);
     let client_id = if base.starts_with("https://") {
-        redirect_uri.clone()
+        format!("{}/oauth/client-metadata.json", base)
     } else {
         format!(
             "http://localhost?redirect_uri={}&scope={}",
@@ -122,7 +131,7 @@ pub async fn init_oauth(handle: String) -> Result<OAuthInitResponse, String> {
     let state = generate_random_hex(16);
     let nonce = generate_random_hex(16);
 
-    let signing_key = get_or_generate_key()?;
+    let signing_key = get_signing_key().clone();
     let dpop_key = get_or_generate_key()?;
 
     let oauth_client = OAuthClient {
