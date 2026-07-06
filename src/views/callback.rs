@@ -1,5 +1,5 @@
 use crate::server_fns;
-use crate::state::SessionState;
+use crate::state::{self, SessionState};
 use dioxus::prelude::*;
 
 #[component]
@@ -26,6 +26,12 @@ pub fn OAuthCallback() -> Element {
                             session_ctx.write().access_token =
                                 session_data.access_token.clone();
                             session_ctx.write().is_authenticated = true;
+
+                            #[cfg(target_arch = "wasm32")]
+                            {
+                                let state = session_ctx.read().clone();
+                                state::save_session(&state);
+                            }
 
                             status.set("Login successful! Redirecting...".to_string());
                             done.set(true);
