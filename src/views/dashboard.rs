@@ -7,7 +7,7 @@ use dioxus::prelude::*;
 pub fn Dashboard() -> Element {
     let session = use_context::<Signal<SessionState>>();
 
-    let apps: Resource<Result<Vec<DiscoveredApp>, String>> = use_resource(move || {
+    let apps: Resource<Result<Vec<DiscoveredApp>, String>> = use_server_future(move || {
         let session = session.read().clone();
         async move {
             let s = crate::types::SessionData {
@@ -20,7 +20,7 @@ pub fn Dashboard() -> Element {
                 .await
                 .map_err(|e| e.to_string())
         }
-    });
+    })?;
 
     let _handle = session.read().handle.clone();
 

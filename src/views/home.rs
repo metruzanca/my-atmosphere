@@ -39,8 +39,7 @@ pub fn Home() -> Element {
                             onclick: move |_| {
                                 #[cfg(target_arch = "wasm32")]
                                 state::clear_session();
-                                let mut s = use_context::<Signal<SessionState>>();
-                                *s.write() = SessionState::default();
+                                session.set(SessionState::default());
                                 logged_out.set(true);
                             },
                             "Log out"
