@@ -22,7 +22,7 @@ pub fn Dashboard() -> Element {
         }
     });
 
-    let handle = session.read().handle.clone();
+    let _handle = session.read().handle.clone();
 
     rsx! {
         div { class: "flex-1 p-6",

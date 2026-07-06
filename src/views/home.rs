@@ -1,9 +1,11 @@
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::state::{self, SessionState};
 use crate::views::{Dashboard, Login};
 use dioxus::prelude::*;
 
 #[component]
 pub fn Home() -> Element {
+    #[allow(unused_mut)]
     let mut session = use_context::<Signal<SessionState>>();
 
     use_effect(move || {
@@ -11,7 +13,7 @@ pub fn Home() -> Element {
         {
             if !session.read().is_authenticated {
                 if let Some(stored) = state::load_session() {
-                    *session.write() = stored;
+                    session.set(stored);
                 }
             }
         }

@@ -9,6 +9,7 @@ pub struct SessionState {
     pub access_token: String,
 }
 
+#[cfg(target_arch = "wasm32")]
 const SESSION_KEY: &str = "my-atmosphere-session";
 
 #[cfg(target_arch = "wasm32")]

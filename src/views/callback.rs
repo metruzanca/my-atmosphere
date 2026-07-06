@@ -1,11 +1,16 @@
-use crate::server_fns;
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::state::{self, SessionState};
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
+use crate::server_fns;
 use dioxus::prelude::*;
 
 #[component]
 pub fn OAuthCallback() -> Element {
+    #[allow(unused_mut)]
     let mut status = use_signal(|| "Processing login...".to_string());
+    #[allow(unused_mut)]
     let mut done = use_signal(|| false);
+    #[allow(unused_mut)]
     let mut error = use_signal(|| String::new());
 
     use_effect(move || {
