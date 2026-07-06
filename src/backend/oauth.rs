@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use atproto_identity::key::{generate_key, KeyData, KeyType};
+use p256::SecretKey;
 use atproto_identity::resolve::{resolve_subject, HickoryDnsResolver};
 use atproto_oauth::resources::{pds_resources, AuthorizationServer};
 use atproto_oauth::workflow::{
@@ -48,6 +49,27 @@ pub struct SessionData {
     pub handle: String,
     pub pds_endpoint: String,
     pub access_token: String,
+}
+
+fn get_or_generate_key() -> Result<KeyData, String> {
+    if let Ok(seed_hex) = std::env::var("OAUTH_KEY_SEED") {
+        let seed_hex = seed_hex.trim();
+        if !seed_hex.is_empty() {
+            let seed = hex::decode(seed_hex)
+                .map_err(|e| format!("Invalid OAUTH_KEY_SEED hex: {}", e))?;
+            let seed: [u8; 32] = seed
+                .try_into()
+                .map_err(|_| "OAUTH_KEY_SEED must be exactly 32 bytes (64 hex chars)".to_string())?;
+            let sk = SecretKey::from_slice(&seed)
+                .map_err(|_| "OAUTH_KEY_SEED is not a valid P-256 private key".to_string())?;
+            return Ok(KeyData::new(
+                KeyType::P256Private,
+                sk.to_bytes().to_vec(),
+            ));
+        }
+    }
+    generate_key(KeyType::P256Private)
+        .map_err(|e| format!("Failed to generate signing key: {}", e))
 }
 
 fn generate_random_hex(len: usize) -> String {
@@ -100,10 +122,8 @@ pub async fn init_oauth(handle: String) -> Result<OAuthInitResponse, String> {
     let state = generate_random_hex(16);
     let nonce = generate_random_hex(16);
 
-    let signing_key = generate_key(KeyType::P256Private)
-        .map_err(|e| format!("Failed to generate signing key: {}", e))?;
-    let dpop_key = generate_key(KeyType::P256Private)
-        .map_err(|e| format!("Failed to generate DPoP key: {}", e))?;
+    let signing_key = get_or_generate_key()?;
+    let dpop_key = get_or_generate_key()?;
 
     let oauth_client = OAuthClient {
         redirect_uri: redirect_uri.clone(),

@@ -1,58 +1,26 @@
-# Development
+# my-atmosphere
 
-Your new jumpstart project includes basic organization with an organized `assets` folder and a `components` folder.
-If you chose to develop with the router feature, you will also have a `views` folder.
+An AT Protocol app dashboard. Log in with your Bluesky/AT Protocol handle, authenticate via OAuth, and discover every app/namespace in your AT Protocol repository.
 
-```
-project/
-├─ assets/ # Any assets that are used by the app should be placed here
-├─ src/
-│  ├─ main.rs # The entrypoint for the app. It also defines the routes for the app.
-│  ├─ components/
-│  │  ├─ mod.rs # Defines the components module
-│  │  ├─ hero.rs # The Hero component for use in the home page
-│  │  ├─ echo.rs # The echo component uses server functions to communicate with the server
-│  ├─ views/ # The views each route will render in the app.
-│  │  ├─ mod.rs # Defines the module for the views route and re-exports the components for each route
-│  │  ├─ blog.rs # The component that will render at the /blog/:id route
-│  │  ├─ home.rs # The component that will render at the / route
-├─ Cargo.toml # The Cargo.toml file defines the dependencies and feature flags for your project
-```
+Built with [Dioxus 0.7](https://dioxuslabs.com) (fullstack, Rust + WASM).
 
-### Automatic Tailwind (Dioxus 0.7+)
+This repo serves primarily as a proof-of-concept for combining Dioxus with the `atproto-*` crates and can be used as a template for AT Protocol appview apps using this tech stack.
 
-As of Dioxus 0.7, there no longer is a need to manually install tailwind. Simply `dx serve` and you're good to go!
+## Features
 
-Automatic tailwind is supported by checking for a file called `tailwind.css` in your app's manifest directory (next to Cargo.toml). To customize the file, use the dioxus.toml:
+- OAuth login against your AT Protocol PDS
+- Scans your repo via `com.atproto.repo.describeRepo`
+- Groups collections by namespace prefix into "discovered" app cards
+- Catppuccin Mocha dark theme with Tailwind CSS
 
-```toml
-[application]
-tailwind_input = "my.css"
-tailwind_output = "assets/out.css"
-```
-
-### Tailwind Manual Install
-
-To use tailwind plugins or manually customize tailwind, you can can install the Tailwind CLI and use it directly.
-
-1. Install npm: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
-2. Install the Tailwind CSS CLI: https://tailwindcss.com/docs/installation/tailwind-cli
-3. Run the following command in the root of the project to start the Tailwind CSS compiler:
+## Development
 
 ```bash
-npx @tailwindcss/cli -i ./input.css -o ./assets/tailwind.css --watch
+dx serve
 ```
 
-### Serving Your App
+## Deployment
 
-Run the following command in the root of your project to start developing with the default platform:
+A `Dockerfile` is included that builds and serves the app. Set the `HOST_DOMAIN` or `RAILWAY_PUBLIC_DOMAIN` environment variable to configure the OAuth redirect URL. Defaults to `http://127.0.0.1:8080`.
 
-```bash
-dx serve --platform web
-```
-
-To run for a different platform, use the `--platform platform` flag. E.g.
-```bash
-dx serve --platform desktop
-```
-
+Set `OAUTH_KEY_SEED` to a fixed 32-byte hex-encoded string (64 chars) to make DPoP signing keys deterministic across deploys. This keeps OAuth sessions alive after restarts instead of invalidating them. Generate one with `openssl rand -hex 32`. If unset, keys are randomly generated on startup (sessions are lost on redeploy).

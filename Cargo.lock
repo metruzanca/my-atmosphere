@@ -4038,6 +4038,7 @@ dependencies = [
  "dioxus",
  "form_urlencoded",
  "hex",
+ "p256",
  "rand 0.10.2",
  "reqwest",
  "serde",
