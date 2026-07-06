@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-use atproto_identity::key::{KeyData, KeyType, generate_key};
-use atproto_identity::resolve::{HickoryDnsResolver, resolve_subject};
+use atproto_identity::key::{generate_key, KeyData, KeyType};
+use atproto_identity::resolve::{resolve_subject, HickoryDnsResolver};
 use atproto_oauth::resources::{pds_resources, AuthorizationServer};
 use atproto_oauth::workflow::{
-    OAuthClient, OAuthRequest, OAuthRequestState, oauth_complete, oauth_init,
+    oauth_complete, oauth_init, OAuthClient, OAuthRequest, OAuthRequestState,
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
@@ -59,6 +59,17 @@ fn urlencoding(s: &str) -> String {
     form_urlencoded::byte_serialize(s.as_bytes()).collect()
 }
 
+fn base_url() -> String {
+    let domain = std::env::var("HOST_DOMAIN")
+        .or_else(|_| std::env::var("RAILWAY_PUBLIC_DOMAIN"))
+        .unwrap_or_default();
+    if domain.is_empty() {
+        "http://127.0.0.1:8080".to_string()
+    } else {
+        format!("https://{}", domain)
+    }
+}
+
 pub async fn init_oauth(handle: String) -> Result<OAuthInitResponse, String> {
     let http_client = reqwest::Client::new();
     let dns_resolver = HickoryDnsResolver::create_resolver(&[]);
@@ -72,12 +83,17 @@ pub async fn init_oauth(handle: String) -> Result<OAuthInitResponse, String> {
         .await
         .map_err(|e| format!("Failed to discover OAuth resources: {}", e))?;
 
-    let redirect_uri = "http://127.0.0.1:8080/oauth/callback".to_string();
-    let client_id = format!(
-        "http://localhost?redirect_uri={}&scope={}",
-        urlencoding(&redirect_uri),
-        urlencoding("atproto transition:generic"),
-    );
+    let base = base_url();
+    let redirect_uri = format!("{}/oauth/callback", base);
+    let client_id = if base.starts_with("https://") {
+        redirect_uri.clone()
+    } else {
+        format!(
+            "http://localhost?redirect_uri={}&scope={}",
+            urlencoding(&redirect_uri),
+            urlencoding("atproto transition:generic"),
+        )
+    };
 
     let (code_verifier, code_challenge) = atproto_oauth::pkce::generate();
 
@@ -122,8 +138,7 @@ pub async fn init_oauth(handle: String) -> Result<OAuthInitResponse, String> {
         signing_public_key: hex::encode(&signing_key.1),
         dpop_private_key: hex::encode(&dpop_key.1),
         created_at: chrono::Utc::now(),
-        expires_at: chrono::Utc::now()
-            + chrono::TimeDelta::seconds(par_response.expires_in as i64),
+        expires_at: chrono::Utc::now() + chrono::TimeDelta::seconds(par_response.expires_in as i64),
     };
 
     OAUTH_STATES.lock().await.insert(
@@ -148,9 +163,7 @@ pub async fn init_oauth(handle: String) -> Result<OAuthInitResponse, String> {
         urlencoding(&state),
     );
 
-    Ok(OAuthInitResponse {
-        authorization_url,
-    })
+    Ok(OAuthInitResponse { authorization_url })
 }
 
 pub async fn complete_oauth(code: String, state: String) -> Result<SessionData, String> {
