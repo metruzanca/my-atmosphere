@@ -1,12 +1,13 @@
 use dioxus::prelude::*;
 
-use views::{Home, OAuthCallback};
+use atproto_oauth_dioxus::components::AtprotoOAuthCallback as OAuthCallback;
+use atproto_oauth_dioxus::components::AtprotoOAuthProvider;
+use atproto_oauth_dioxus::config::AtprotoOAuthConfig;
+
+use views::Home;
 
 mod components;
 mod views;
-
-mod state;
-use state::SessionState;
 
 mod types;
 mod server_fns;
@@ -32,12 +33,13 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-    use_context_provider(|| Signal::new(SessionState::default()));
-
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
 
-        Router::<Route> {}
+        AtprotoOAuthProvider {
+            config: AtprotoOAuthConfig::new("/oauth/callback"),
+            Router::<Route> {}
+        }
     }
 }

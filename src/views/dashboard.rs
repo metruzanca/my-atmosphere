@@ -1,6 +1,6 @@
 use crate::server_fns;
-use crate::state::SessionState;
 use crate::types::DiscoveredApp;
+use atproto_oauth_dioxus::types::{SessionData, SessionState};
 use dioxus::prelude::*;
 
 #[component]
@@ -10,7 +10,7 @@ pub fn Dashboard() -> Element {
     let apps: Resource<Result<Vec<DiscoveredApp>, String>> = use_server_future(move || {
         let session = session.read().clone();
         async move {
-            let s = crate::types::SessionData {
+            let s = SessionData {
                 did: session.did,
                 handle: session.handle,
                 pds_endpoint: session.pds_endpoint,

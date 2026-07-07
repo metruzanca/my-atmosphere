@@ -1,40 +1,14 @@
-use crate::server_fns;
+use atproto_oauth_dioxus::hooks::do_atproto_login;
 use dioxus::prelude::*;
-
-fn do_login(
-    handle: Signal<String>,
-    mut loading: Signal<bool>,
-    mut error: Signal<String>,
-    mut auth_url: Signal<String>,
-) {
-    let h = handle.read().clone();
-    if h.is_empty() {
-        return;
-    }
-    loading.set(true);
-    error.set(String::new());
-    spawn(async move {
-        match server_fns::init_oauth_server(h).await {
-            Ok(resp) => {
-                auth_url.set(resp.authorization_url);
-                loading.set(false);
-            }
-            Err(e) => {
-                error.set(format!("Login failed: {}", e));
-                loading.set(false);
-            }
-        }
-    });
-}
 
 #[component]
 pub fn Login() -> Element {
     let mut handle = use_signal(String::new);
-    let loading = use_signal(|| false);
-    let error = use_signal(String::new);
-    let auth_url = use_signal(String::new);
+    let auth_url = use_signal(|| None::<String>);
+    let error = use_signal(|| None::<String>);
+    let is_loading = use_signal(|| false);
 
-    if !auth_url.read().is_empty() {
+    if let Some(url) = auth_url.read().as_ref() {
         return rsx! {
             div { class: "flex flex-col items-center justify-center min-h-screen p-4",
                 h1 { class: "text-3xl font-bold mb-6 text-center text-ctp-text",
@@ -44,7 +18,7 @@ pub fn Login() -> Element {
                     "You'll be redirected to authorize my-atmosphere to view the apps you use on AT Protocol."
                 }
                 a {
-                    href: "{auth_url}",
+                    href: "{url}",
                     class: "px-8 py-3 bg-ctp-mauve text-ctp-base rounded-lg hover:bg-ctp-pink transition-colors font-medium text-lg",
                     "Continue to Authorization"
                 }
@@ -74,26 +48,26 @@ pub fn Login() -> Element {
                         oninput: move |e| handle.set(e.value()),
                         onkeydown: move |e| {
                             if e.key() == Key::Enter {
-                                do_login(handle, loading, error, auth_url);
+                                do_atproto_login(handle(), auth_url, error, is_loading);
                             }
                         },
-                        disabled: loading(),
+                        disabled: is_loading(),
                     }
 
                     button {
                         class: "w-full px-6 py-3 bg-ctp-mauve text-ctp-base rounded-lg hover:bg-ctp-pink transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium cursor-pointer",
-                        disabled: loading() || handle.read().is_empty(),
-                        onclick: move |_| do_login(handle, loading, error, auth_url),
-                        if loading() {
+                        disabled: is_loading() || handle.read().is_empty(),
+                        onclick: move |_| do_atproto_login(handle(), auth_url, error, is_loading),
+                        if is_loading() {
                             "Connecting..."
                         } else {
                             "Login with AT Protocol"
                         }
                     }
 
-                    if !error.read().is_empty() {
+                    if let Some(err) = error.read().as_ref() {
                         div { class: "p-3 bg-ctp-surface0 border border-ctp-red rounded-lg text-ctp-red text-sm",
-                            "{error}"
+                            "{err}"
                         }
                     }
                 }

@@ -1,2 +1,1 @@
-pub mod oauth;
-pub mod repo;
+pub(crate) mod repo;

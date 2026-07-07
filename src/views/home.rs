@@ -1,23 +1,11 @@
-#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
-use crate::state::{self, SessionState};
+use atproto_oauth_dioxus::hooks::do_atproto_logout;
+use atproto_oauth_dioxus::types::SessionState;
 use crate::views::{Dashboard, Login};
 use dioxus::prelude::*;
 
 #[component]
 pub fn Home() -> Element {
-    #[allow(unused_mut)]
-    let mut session = use_context::<Signal<SessionState>>();
-
-    use_effect(move || {
-        #[cfg(target_arch = "wasm32")]
-        {
-            if !session.read().is_authenticated {
-                if let Some(stored) = state::load_session() {
-                    session.set(stored);
-                }
-            }
-        }
-    });
+    let session = use_context::<Signal<SessionState>>();
 
     let is_authenticated = session.read().is_authenticated;
     let handle = session.read().handle.clone();
@@ -37,9 +25,7 @@ pub fn Home() -> Element {
                         button {
                             class: "px-3 py-1.5 text-sm rounded-lg bg-ctp-surface0 text-ctp-subtext1 hover:bg-ctp-surface1 hover:text-ctp-text transition-colors cursor-pointer",
                             onclick: move |_| {
-                                #[cfg(target_arch = "wasm32")]
-                                state::clear_session();
-                                session.set(SessionState::default());
+                                do_atproto_logout(session);
                                 logged_out.set(true);
                             },
                             "Log out"

@@ -1,11 +1,11 @@
-use std::collections::{HashMap, hash_map::DefaultHasher};
+use std::collections::{hash_map::DefaultHasher, HashMap};
 use std::hash::{Hash, Hasher};
 
 use atproto_identity::url::build_url;
 use atproto_oauth::dpop::request_dpop;
+use atproto_oauth_dioxus::server::get_active_session;
 use serde::Deserialize;
 
-use super::oauth::{SessionData, ACTIVE_SESSIONS};
 use crate::types::DiscoveredApp;
 
 #[derive(Debug, Deserialize)]
@@ -13,7 +13,9 @@ struct DescribeRepoResponse {
     collections: Vec<String>,
 }
 
-pub async fn scan_apps(session: &SessionData) -> Result<Vec<DiscoveredApp>, String> {
+pub async fn scan_apps(
+    session: &atproto_oauth_dioxus::types::SessionData,
+) -> Result<Vec<DiscoveredApp>, String> {
     let http_client = reqwest::Client::new();
 
     let url = build_url(
@@ -24,13 +26,9 @@ pub async fn scan_apps(session: &SessionData) -> Result<Vec<DiscoveredApp>, Stri
     .map_err(|e| format!("URL build failed: {}", e))?
     .to_string();
 
-    let active = {
-        let sessions = ACTIVE_SESSIONS.lock().await;
-        sessions
-            .get(&session.did)
-            .cloned()
-            .ok_or("No active session found")?
-    };
+    let active = get_active_session(&session.did)
+        .await
+        .ok_or("No active session found")?;
 
     let (dpop_token, _, _) =
         request_dpop(&active.dpop_key, "GET", &url, &active.access_token)
@@ -52,10 +50,7 @@ pub async fn scan_apps(session: &SessionData) -> Result<Vec<DiscoveredApp>, Stri
     let mut prefix_map: HashMap<String, Vec<String>> = HashMap::new();
     for collection in &repo_data.collections {
         let prefix = extract_nsid_prefix(collection);
-        prefix_map
-            .entry(prefix)
-            .or_default()
-            .push(collection.clone());
+        prefix_map.entry(prefix).or_default().push(collection.clone());
     }
 
     let mut apps: Vec<DiscoveredApp> = prefix_map
@@ -74,7 +69,7 @@ pub async fn scan_apps(session: &SessionData) -> Result<Vec<DiscoveredApp>, Stri
         })
         .collect();
 
-    apps.sort_by(|a, b| a.display_name.to_lowercase().cmp(&b.display_name.to_lowercase()));
+    apps.sort_by_key(|a| a.display_name.to_lowercase());
 
     Ok(apps)
 }
@@ -117,16 +112,14 @@ fn hash_prefix(prefix: &str) -> u64 {
 
 fn pick_icon(prefix: &str) -> String {
     const ICONS: &[&str] = &[
-        "📦", "🔧", "📡", "💡", "🎯", "🚀", "⭐", "🔮",
-        "📋", "🎨", "🔌", "📊", "🌱", "⚡", "🛠", "📚",
+        "📦", "🔧", "📡", "💡", "🎯", "🚀", "⭐", "🔮", "📋", "🎨", "🔌", "📊", "🌱", "⚡", "🛠", "📚",
     ];
     ICONS[hash_prefix(prefix) as usize % ICONS.len()].to_string()
 }
 
 fn pick_color(prefix: &str) -> String {
     const COLORS: &[&str] = &[
-        "#cba6f7", "#f5c2e7", "#89b4fa", "#a6e3a1",
-        "#fab387", "#94e2d5", "#74c7ec", "#f38ba8",
+        "#cba6f7", "#f5c2e7", "#89b4fa", "#a6e3a1", "#fab387", "#94e2d5", "#74c7ec", "#f38ba8",
         "#b4befe", "#f9e2af", "#eba0ac", "#89dceb",
     ];
     COLORS[hash_prefix(prefix) as usize % COLORS.len()].to_string()
