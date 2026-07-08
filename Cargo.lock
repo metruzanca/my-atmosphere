@@ -181,7 +181,7 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 [[package]]
 name = "atproto-dasl"
 version = "0.15.0-alpha.2"
-source = "git+https://tangled.org/metru.dev/atproto-crates?branch=main#a3876b743df629538ace590904341e04c8c5cff6"
+source = "git+https://tangled.org/metru.dev/atproto-crates?branch=main#a39988360af6a58259bdc5329f6cc723d3056604"
 dependencies = [
  "blake3",
  "cid",
@@ -199,7 +199,7 @@ dependencies = [
 [[package]]
 name = "atproto-identity"
 version = "0.15.0-alpha.2"
-source = "git+https://tangled.org/metru.dev/atproto-crates?branch=main#a3876b743df629538ace590904341e04c8c5cff6"
+source = "git+https://tangled.org/metru.dev/atproto-crates?branch=main#a39988360af6a58259bdc5329f6cc723d3056604"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -230,7 +230,7 @@ dependencies = [
 [[package]]
 name = "atproto-oauth"
 version = "0.15.0-alpha.2"
-source = "git+https://tangled.org/metru.dev/atproto-crates?branch=main#a3876b743df629538ace590904341e04c8c5cff6"
+source = "git+https://tangled.org/metru.dev/atproto-crates?branch=main#a39988360af6a58259bdc5329f6cc723d3056604"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -260,7 +260,7 @@ dependencies = [
 [[package]]
 name = "atproto-oauth-dioxus"
 version = "0.15.0-alpha.2"
-source = "git+https://tangled.org/metru.dev/atproto-crates?branch=main#a3876b743df629538ace590904341e04c8c5cff6"
+source = "git+https://tangled.org/metru.dev/atproto-crates?branch=main#a39988360af6a58259bdc5329f6cc723d3056604"
 dependencies = [
  "atproto-identity",
  "atproto-oauth",
@@ -275,6 +275,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.18",
  "tokio",
+ "tracing",
  "url",
  "web-sys",
 ]
